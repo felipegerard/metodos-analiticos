@@ -1,3 +1,4 @@
+import json
 import pprint
 import re
 
@@ -64,11 +65,10 @@ def record2json(rec):
     di['Raw'] = rec
     return di
 
-pprint.pprint(record2json(d['A']))
+pprint.pprint(record2json(d['ACTION']))
 
 d = langDict({esc2punct(k.encode('ascii','ignore')):esc2punct(v.encode('ascii','replace')) for k,v in
      json.load(open('gutenberg_dictionary_raw.json')).iteritems()})
-d = json.load(open('gutenberg_dictionary_raw.json'))
 
 dout = {k.lower():record2json(v) for k,v in d.iteritems()}
 

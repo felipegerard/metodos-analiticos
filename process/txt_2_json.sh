@@ -6,6 +6,7 @@ tr -d '\r' \
       -e 's/|/ <br> /g' \
 | sed -E -e 's/ <br> <br> ([A-Z]+;? )/||\1/g' \
 | tr '|' '\n' \
+| grep -E "^[A-Z]+;?" \
 | sed -e 's/\./<punto>/g' \
       -e 's/,/<coma>/g' \
       -e 's/:/<dos_puntos>/g' \
@@ -22,8 +23,7 @@ tr -d '\r' \
       -e 's/-/<guion>/g' \
       -e 's/&/<ampersand>/g' \
       -e 's/\//<diagonal>/g' \
-      -e 's/[^a-zA-Z_<> ]//g' \
-| grep -E "^[A-Z]+;?" \
+      -e 's/[^0-9a-zA-Z_<> ]//g' \
 | sed -E -e 's/^([A-Z]+)(<punto_coma> [A-Z]+)? <br> /"\1\2":"/' \
 	 -e 's/$| $/"/' \
 | grep '^"' \
