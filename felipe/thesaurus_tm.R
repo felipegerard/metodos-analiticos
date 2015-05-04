@@ -47,8 +47,8 @@ dict2df <- function(dict, parallel = F, cores = 6){
 
 #system.time(d <- dict2df(dict[1:20000], parallel = T, cores = 6))
 system.time(dict_df <- dict2df(dict, parallel = T, cores = 6))
-
-
+#write.table(dict_df, file = 'output/gutenberg_data_frame.psv', sep = '|')
+#save(dict_df, file='output/gutenberg_data_frame.Rdata')
 
 
 
