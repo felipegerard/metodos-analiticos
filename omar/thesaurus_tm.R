@@ -11,7 +11,7 @@ View(dict_df)
 #filter(d, Word == 'fish')$Def
 
 d <- dict_df %>%
-  filter(grepl('^[a-l]', Word), id != 'Metadata', Def != '')
+  filter(grepl('^[a-z]', Word), id != 'Metadata', Def != '')
 dim(d)
 corpus.frases <- Corpus(VectorSource(d$Def))
 corpus.frases
@@ -80,7 +80,7 @@ best <- function(nmatch = 3, nterm = 5){
 
 
 best <- best(nmatch = 15, nterm = 10)
-wordcloud(best$term,best$contrib,min.freq=0.1,ordered.colors=T,colors=brewer.pal(nrow(best),"Dark2"))
+wordcloud(best$term,best$contrib,min.freq=0.1,ordered.colors=T,colors=colorRampPalette(brewer.pal(9,"Set1"))(nrow(best)))
 
 
 
