@@ -26,8 +26,10 @@ shinyServer(function(input, output) {
   
   
   query.vec.norm <- reactive({ 
-    query.vec.1 <- TermDocumentMatrix(Corpus(VectorSource(input$word)), 
-                                      control = list(dictionary = dictionary(),wordLengths=c(1, Inf))) 
+    aux <- tm_map(Corpus(VectorSource(input$word)),removeWords,stopwords("english"))
+    query.vec.1 <- TermDocumentMatrix(aux, 
+                                      control = list(dictionary = dictionary(),
+                                                     wordLengths=c(1, Inf)))  
     query.vec.norm <- as.matrix(query.vec.1)/sqrt(sum(query.vec.1^2))
     ##query.vec.norm <- weightSMART(query.vec.1, spec='ntc', control = list(dictionary = dictionary))   
   })
@@ -52,6 +54,8 @@ shinyServer(function(input, output) {
   
   top15 <- reactive({
     top15 <- out() %>% head(15)
+    top15$Def <- gsub('<br>','',top15$Def)
+    top15
   })
   
 
@@ -97,8 +101,13 @@ shinyServer(function(input, output) {
         arrange(desc(contrib))
     }
   
-    best <- best(nmatch = 15, nterm = nrow(unique(as.data.frame(strsplit(input$word," ")[[1]]))))
-    wordcloud(best$term,best$contrib,scale=c(5,.7),min.freq=0.1,ordered.colors=T,colors=colorRampPalette(brewer.pal(9,"Set1"))(nrow(best)))
+    best <- best(nmatch = 15, nterm = nrow(unique(as.data.frame(strsplit(input$word," ")[[1]])))) 
+    
+    wordcloud(best$term,best$contrib,
+              scale=c(5,.7),
+              min.freq=0.1,
+              ordered.colors=T,
+              colors=colorRampPalette(brewer.pal(9,"Set1"))(nrow(best)))
     
     })
   
