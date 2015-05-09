@@ -1,1 +1,9 @@
 hola felipe
+
+Pendientes:
+
+- responder la pregunta del código respecto a los escapes de []
+- aplicar ntc al querry
+- quitar stopwords al querry
+- al leer el diccionario al final, cambiarle los <br> por espacios
+- en el data frame del word cloud hay que estandarizar o algo para que siempre se pueda graficar y siempre quepa en el espacio de la página
