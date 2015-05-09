@@ -3,14 +3,15 @@ library(Matrix)
 library(dplyr)
 library(tm)
 library(ggplot2)
+library(wordcloud)
 
 #load('output/gutenberg_data_frame.Rdata')
 View(dict_df)
 
-filter(d, Word == 'fish')$Def
+#filter(d, Word == 'fish')$Def
 
 d <- dict_df %>%
-  filter(grepl('^[abcde]', Word), id != 'Metadata', Def != '')
+  filter(grepl('^[a-l]', Word), id != 'Metadata', Def != '')
 dim(d)
 corpus.frases <- Corpus(VectorSource(d$Def))
 corpus.frases
@@ -21,9 +22,11 @@ corp.1 <- tm_map(corpus.frases,  function(x){
 corp.2 <- tm_map(corp.1, function(x) stripWhitespace(x) %>% tolower %>% PlainTextDocument)
 
 tdm.1 <- TermDocumentMatrix(corp.2, control=list(wordLengths=c(1, Inf)))
-tdm.2 <- weightSMART(tdm.2, spec = 'ntc')
+tdm.2 <- weightSMART(tdm.1, spec = 'ntc')
 colnames(tdm.2) <- paste(d$Word, d$id, sep='_')
-sum(rownames(tdm.2) == 'fish-tackle')
+#sum(rownames(tdm.2) == 'fish-tackle')
+
+
 ## checamos normalización:
 head(sort(vec.1 <- as.matrix(tdm.2[,'action_1']),dec=T))
 
@@ -69,8 +72,23 @@ best <- function(nmatch = 3, nterm = 5){
       filter(score_contrib > 0) %>%
       data.frame(rank = i, match = colnames(tdm.2)[idx_top[i]], total_score = sum(v), stringsAsFactors = F)
   }
-  rbind_all(outlist)[c(3,4,5,1,2)]
+  rbind_all(outlist)[c(3,4,5,1,2)] %>%
+    group_by(term) %>%
+    summarise(contrib=sum(score_contrib)) %>%
+    arrange(desc(contrib))
 }
-best(nmatch = 15, nterm = 10) %>% View
+
+
+best <- best(nmatch = 15, nterm = 10)
+wordcloud(best$term,best$contrib,min.freq=0.1,ordered.colors=T,colors=brewer.pal(nrow(best),"Dark2"))
+
+
+
+
+
+
+
+
+
 
 
