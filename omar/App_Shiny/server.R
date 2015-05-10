@@ -5,8 +5,8 @@ library(tm)
 library(ggplot2)
 library(wordcloud)
 
-load('/Users/omardiaz/Dropbox/ITAM_Master/Metodos_Analiticos/Final_MA/omar/tdm_2.Rdata')
-load('/Users/omardiaz/Dropbox/ITAM_Master/Metodos_Analiticos/Final_MA/omar/dictionary.Rdata')
+load('data/tdm_2.Rdata')
+load('data/dictionary.Rdata')
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output) {
