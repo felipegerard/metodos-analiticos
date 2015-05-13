@@ -52,6 +52,13 @@ top15 <- reactive({
   top15
 })
 
+top15_d <- reactive({
+  top15 <- out()
+  top15$Def <- gsub('<br>','',top15$Def)
+  top15_d <- top15 %>% head(15)
+  top15_d
+})
+
 
 ################################ imprimimos las primeras 10 recomendaciones ############################## 
 
@@ -62,11 +69,12 @@ output$res  <- renderDataTable(options = list(pageLength = 10), top15() )
 
 
 output$distPlot <- renderPlot({ 
-  m <- data.frame(min=min(top15()$score))
+  m <- data.frame(min=min(top15_d()$score))
   ggplot() +
     geom_bar(data=out(), mapping=aes(x=score),binwithd=.5) +
-    geom_vline(data=top15(), aes(xintercept=min(score)), color='red')
+    geom_vline(data=top15_d(), aes(xintercept=min(score)), color='red')
 })
+
 
 ################################## wordcloud de contribucion de palabras  ################################# 
 
