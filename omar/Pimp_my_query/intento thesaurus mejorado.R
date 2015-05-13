@@ -43,14 +43,21 @@ head(sort(vec.1 <- as.matrix(tdm.2[,'action_1']),dec=T))
 query <- 'i would like to go to the green park and spend a great time with my friends'
 query <- 'wine'
 
+query <- 'car'
 
 if(sapply(gregexpr("\\W+", query), length) + 1 == 2) {
   #si la longitud del query es de 1 entonces, buscamos y limpiamos su definicion
-  definicion <- paste(query,d[which(d$Word %in% query)[1],]$Def)
-  definicion <- gsub('--|[],;:.[]|<br>|[()«»"#*`¿?¡!/&%$=]','',definicion)
-  definicion <- tm_map(Corpus(VectorSource(definicion)), function(x) stripWhitespace(x) %>% tolower %>% PlainTextDocument)
-  definicion <- tm_map(definicion,removeWords,stopwords("english"))
-  aux <- definicion
+  
+  if(is.na(d[which(d$Word %in% query)[1],]$Def)){
+    aux <- tm_map(Corpus(VectorSource(query)),removeWords,stopwords("english"))
+  }else{
+    definicion <- paste(query,d[which(d$Word %in% query)[1],]$Def)
+    definicion <- gsub('--|[],;:.[]|<br>|[()«»"#*`¿?¡!/&%$=]','',definicion)
+    definicion <- tm_map(Corpus(VectorSource(definicion)), function(x) stripWhitespace(x) %>% tolower %>% PlainTextDocument)
+    definicion <- tm_map(definicion,removeWords,stopwords("english"))
+    aux <- definicion
+    
+  }
 }else{
   aux <- tm_map(Corpus(VectorSource(query)),removeWords,stopwords("english"))
 }

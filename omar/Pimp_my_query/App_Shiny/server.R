@@ -30,14 +30,21 @@ aux <- reactive({
   
   if(sapply(gregexpr("\\W+", query), length) + 1 == 2) {
     #si la longitud del query es de 1 entonces, buscamos y limpiamos su definicion
-    definicion <- paste(query,d[which(d$Word %in% query)[1],]$Def)
-    definicion <- gsub('--|[],;:.[]|<br>|[()«»"#*`¿?¡!/&%$=]','',definicion)
-    definicion <- tm_map(Corpus(VectorSource(definicion)), function(x) stripWhitespace(x) %>% tolower %>% PlainTextDocument)
-    definicion <- tm_map(definicion,removeWords,stopwords("english"))
-    aux <- definicion
+    
+    if(is.na(d[which(d$Word %in% query)[1],]$Def)){
+      aux <- tm_map(Corpus(VectorSource(query)),removeWords,stopwords("english"))
+    }else{
+      definicion <- paste(query,d[which(d$Word %in% query)[1],]$Def)
+      definicion <- gsub('--|[],;:.[]|<br>|[()«»"#*`¿?¡!/&%$=]','',definicion)
+      definicion <- tm_map(Corpus(VectorSource(definicion)), function(x) stripWhitespace(x) %>% tolower %>% PlainTextDocument)
+      definicion <- tm_map(definicion,removeWords,stopwords("english"))
+      aux <- definicion
+      
+    }
   }else{
     aux <- tm_map(Corpus(VectorSource(query)),removeWords,stopwords("english"))
   }
+  
 })  
 
   
@@ -97,7 +104,7 @@ output$distPlot <- renderPlot({
 
 ################################## wordcloud de contribucion de palabras  ################################# 
 
-output$contPlot <- renderPlot({
+best <- reactive({
   
   best <- function(nmatch = 3, nterm = 5){
     
@@ -129,14 +136,28 @@ output$contPlot <- renderPlot({
   }
   
   best <- best(nmatch = 15, nterm = nrow(unique(as.data.frame(strsplit(as.character(aux()[[1]])," ")[[1]])))) 
+  best
+}) 
+
+
+################################ imprimimos palabras con sus contribuciones ############################## 
+
+
+output$cont  <- renderDataTable(options = list(pageLength = 5), best() )
   
-  wordcloud(best$term,best$contrib,
-            scale=c(5,.7),
+output$contPlot <- renderPlot({  
+  wordcloud(best()$term,best()$contrib,
+            scale=c(9,.8),
             min.freq=0.1,
             ordered.colors=T,
-            colors=colorRampPalette(brewer.pal(9,"Set1"))(nrow(best)))
+            colors=colorRampPalette(brewer.pal(9,"Set1"))(nrow(best())))
   
 })
+
+
+
+
+
 
 })
 

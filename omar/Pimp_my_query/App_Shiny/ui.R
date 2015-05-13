@@ -20,13 +20,16 @@ shinyUI(fluidPage(
       tabsetPanel(type="tabs",
                   tabPanel("Recommendation",dataTableOutput("res")),
                   tabPanel("Discrimination", plotOutput("distPlot")),
-                  tabPanel("Word Contribution",plotOutput("contPlot"))                 
+                  navbarMenu("Word Contribution",
+                             tabPanel("Wordcloud",plotOutput("contPlot")),
+                             tabPanel("Weights",dataTableOutput("cont"))
+                             )
                   )
     )
   )
 ))
 
-
+#,dataTableOutput("cont")
 
 
 
