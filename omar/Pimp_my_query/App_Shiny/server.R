@@ -24,9 +24,32 @@ mat.1 <- reactive(  sparseMatrix(i=tdm.2$i, j=tdm.2$j, x = tdm.2$v) )
 dictionary <- reactive( tdm.2$dimnames$Terms )
 
 ## revisamos el query, quitamos stopwords y normalizamos
-query.vec.norm <- reactive({ 
-  aux <- tm_map(Corpus(VectorSource(input$word)),removeWords,stopwords("english"))
-  query.vec.1 <- TermDocumentMatrix(aux, 
+aux <- reactive({ 
+   
+  query <- input$word 
+  
+  if(sapply(gregexpr("\\W+", query), length) + 1 == 2) {
+    #si la longitud del query es de 1 entonces, buscamos y limpiamos su definicion
+    
+    if(is.na(d[which(d$Word %in% query)[1],]$Def)){
+      aux <- tm_map(Corpus(VectorSource(query)),removeWords,stopwords("english"))
+    }else{
+      definicion <- paste(query,d[which(d$Word %in% query)[1],]$Def)
+      definicion <- gsub('--|[],;:.[]|<br>|[()«»"#*`¿?¡!/&%$=]','',definicion)
+      definicion <- tm_map(Corpus(VectorSource(definicion)), function(x) stripWhitespace(x) %>% tolower %>% PlainTextDocument)
+      definicion <- tm_map(definicion,removeWords,stopwords("english"))
+      aux <- definicion
+      
+    }
+  }else{
+    aux <- tm_map(Corpus(VectorSource(query)),removeWords,stopwords("english"))
+  }
+  
+})  
+
+  
+query.vec.norm <- reactive({  
+  query.vec.1 <- TermDocumentMatrix(aux(), 
                                     control = list(dictionary = dictionary(),
                                                    wordLengths=c(1, Inf)))  
   query.vec.norm <- as.matrix(query.vec.1)/sqrt(sum(query.vec.1^2))  
@@ -76,9 +99,12 @@ output$distPlot <- renderPlot({
 })
 
 
+
+
+
 ################################## wordcloud de contribucion de palabras  ################################# 
 
-output$contPlot <- renderPlot({
+best <- reactive({
   
   best <- function(nmatch = 3, nterm = 5){
     
@@ -109,15 +135,29 @@ output$contPlot <- renderPlot({
       arrange(desc(contrib))
   }
   
-  best <- best(nmatch = 15, nterm = nrow(unique(as.data.frame(strsplit(input$word," ")[[1]])))) 
+  best <- best(nmatch = 15, nterm = nrow(unique(as.data.frame(strsplit(as.character(aux()[[1]])," ")[[1]])))) 
+  best
+}) 
+
+
+################################ imprimimos palabras con sus contribuciones ############################## 
+
+
+output$cont  <- renderDataTable(options = list(pageLength = 5), best() )
   
-  wordcloud(best$term,best$contrib,
-            scale=c(5,.7),
+output$contPlot <- renderPlot({  
+  wordcloud(best()$term,best()$contrib,
+            scale=c(9,.8),
             min.freq=0.1,
             ordered.colors=T,
-            colors=colorRampPalette(brewer.pal(9,"Set1"))(nrow(best)))
+            colors=colorRampPalette(brewer.pal(9,"Set1"))(nrow(best())))
   
 })
+
+
+
+
+
 
 })
 
