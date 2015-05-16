@@ -25,17 +25,17 @@ xml2punct <- function(x){
   x
 }
 
-json2df <- function(y){
+json2df <- function(y, mc.cores = 4){
   mclapply(y, function(x) as.data.frame(x, stringsAsFactors = F),
-                         mc.cores = 6) %>%
+                         mc.cores = mc.cores) %>%
     rbind_all %>%
     dplyr::select(Title, Date, Award.Number, Investigator, Sponsor, Fld.Applictn, Abstract) %>%
     apply(2, xml2punct)
 }
 
-dict1 <- fromJSON(txt = '../data/abstracts_clean_part1.json')
-dict2 <- fromJSON(txt = '../data/abstracts_clean_part2.json')
-dict3 <- fromJSON(txt = '../data/abstracts_clean_part3.json')
+dict1 <- fromJSON(txt = '../data/big/abstracts_clean_part1.json')
+dict2 <- fromJSON(txt = '../data/big/abstracts_clean_part2.json')
+dict3 <- fromJSON(txt = '../data/big/abstracts_clean_part3.json')
 
 abstracts1 <- json2df(dict1)
 abstracts2 <- json2df(dict2)
@@ -48,8 +48,8 @@ abstracts <- rbind(
   data.frame
 names(abstracts) <- c('file','title','date','award_number','investigator','sponsor','field','abstract')
 
-#write.table(abstracts, file = '../data/abstracts_clean.psv', sep = '|')
-#save(abstracts2, file='../data/abstracts_clean.Rdata')
+#write.table(abstracts, file = '../data/big/abstracts_clean.psv', sep = '|')
+#save(abstracts, file='../data/abstracts_clean.Rdata')
 
 
 
