@@ -1,6 +1,7 @@
 .DS_Store
 .Rproj.user
 <<<<<<< HEAD
+<<<<<<< HEAD
 data/abstracts_clean.psv
 data/abstracts_clean_part1.json
 data/abstracts_clean_part2.json
@@ -12,3 +13,5 @@ data/abstracts_clean_part3.json
 ./data/abstracts_clean_part2.json
 ./data/abstracts_clean_part3.json
 ./data/gutenberg_dictionary_clean.json
+=======
+>>>>>>> 12f73d2ee3cd031c6a28c91ce966324b12f84a12
