@@ -29,7 +29,7 @@ d <- abstracts2 %>%
   filter(Title != '') %>% #8
   filter(Abstract != '' ) %>% #2180
   filter(grepl('-----------------------------------------------------------------------',Abstract)=='FALSE') 
-#save(d,file='App_Shiny/data/d.Rdata')
+save(d,file='App_Shiny/data/d.Rdata')
 
 # consultas de caractres especiales en la info
 d1 <- d %>%

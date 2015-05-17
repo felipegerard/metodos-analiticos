@@ -10,6 +10,7 @@ library(wordcloud)
 
 load('data/tdm_2.Rdata')
 load('data/d.Rdata')
+load('data/d_sin_stem.Rdata')
 
 shinyServer(function(input, output) {
 
@@ -70,15 +71,17 @@ out <- reactive({
 
 top15 <- reactive({
   top15 <- out()
-  top15$Def <- gsub('<br>','',top15$Def)
+  top15$Abstract <- gsub('<br>','',top15$Abstract)
+  top15$Title <- gsub('<br>','',top15$Title)
+  top15$Sponsor <- gsub('<br>','',top15$Sponsor)
   top15
 })
 
 top15_d <- reactive({
   top15 <- out()
-  res$Abstract <- gsub('<br>','',res$Abstract)
-  res$Title <- gsub('<br>','',res$Title)
-  res$Sponsor <- gsub('<br>','',res$Sponsor)
+  top15$Abstract <- gsub('<br>','',top15$Abstract)
+  top15$Title <- gsub('<br>','',top15$Title)
+  top15$Sponsor <- gsub('<br>','',top15$Sponsor)
   top15_d <- top15 %>% head(15)
   top15_d
 })
@@ -136,7 +139,7 @@ best <- reactive({
       arrange(desc(contrib))
   }
   
-  best <- best(nmatch = 15, nterm = nrow(unique(as.data.frame(strsplit(as.character(query.limp()[[1]])," ")[[1]])))) 
+  best <- best(nmatch = 15, nterm = nrow(unique(as.data.frame(strsplit(as.character(input$word[[1]])," ")[[1]])))) 
   best
 }) 
 
