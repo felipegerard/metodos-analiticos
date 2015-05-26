@@ -20,15 +20,23 @@ View(abstracts2)
 colnames(abstracts2)
 nrow(abstracts2)
 
-###################################  limpieza de la informacion y creacion del corpus ##################################
+###################################  limpieza de la informacion  ##################################
 
 # filtramos cosas feas en abstract y title
+
 d <- abstracts2 %>%
   filter(grepl('Presidential Awardee',Title)=='FALSE') %>% #815
   filter(grepl('Not Available',Abstract)=='FALSE') %>% #1267
   filter(Title != '') %>% #8
   filter(Abstract != '' ) %>% #2180
+  filter(Fld.Applictn != '') %>%
   filter(grepl('-----------------------------------------------------------------------',Abstract)=='FALSE') 
+d$Fld.Applictn <-  gsub('[0-9]','',
+                        gsub('NEC','',
+                             gsub('<br>','',
+                                  gsub('^ ','',
+                                       gsub(' $','',d$Fld.Applictn)))))
+
 #save(d,file='App_Shiny/data/d.Rdata')
 
 # consultas de caractres especiales en la info
@@ -39,6 +47,27 @@ v <- filter(d1,grepl('S u m',Abstract)=='TRUE')
 subset(v,id==4550)
 
 subset(d1,id==100)
+
+###################################  query field  ##################################
+
+
+
+query.field <- d3[103,]
+
+if(nchar(as.character(query.field))>0){
+  d <- d %>%
+    filter(grepl(query.field,Fld.Applictn)=='TRUE') 
+}else{
+  d <- d
+}
+
+
+
+
+
+
+
+###################################  creacion del corpus  ##################################
 
 # creamos el corpus y limpiamos caracteres especiales
 corpus.frases <- Corpus(VectorSource(d$Abstract))
@@ -86,7 +115,7 @@ head(sort(vec.1 <- as.matrix(tdm.2[,500]),dec=T))
 
 ########################################################  Query #######################################################
 
-query <- 'The main objective of this proposal is better understanding of underlying atomic<br> and molecular processes involved in the microstructural evolution of<br> polycrytalline TiS2 and other powders synthesized using the thi-sol-gel process<br> previously proposed by the P.I. A secondary objective is to investigate the<br> electrochemical properties of the resulted thin layer, the influence of heat<br> treatment and of charging on the particulate microstructure. The effects of<br> particle size, shape, crystallite size, orientation and stoichiometry on the<br> elctrochemical properties and the mechanisms involved in the evolution of the<br> microstructure will be investigated using differential thermal and<br> thermogravimetric analyses, scanning and transmission electron microscopy. <br> If successful, the research may provide a method to synthesize an engineered<br> microstructure with optimal electrochemical properties. Applications include<br> electrochemical batteries. The preliminary test have indicated a dramatic<br> increase of the number of charging cycles for a given reduction in performance'
+query <- 'Stuart Rice of the University of Chicago is funded by the Theoretical and<br> Computational Chemistry Program for a combined experimental and theoretical<br> approach to study the interfaces between pure metals and alloy'
 #limpieza del query
 query.l <- Corpus(VectorSource(query))
 q.1 <- tm_map(query.l,function(x){
@@ -187,15 +216,6 @@ d3 <- as.data.frame(unique(gsub(' $','',
 
 colnames(d3) <- 'Field'
 d3 <- arrange(d3,Field)
-
-
-
-
-
-
-
-
-
 
 
 
