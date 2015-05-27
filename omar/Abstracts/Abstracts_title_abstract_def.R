@@ -255,8 +255,9 @@ wordcloud(best$term,best$contrib_tot,
           ordered.colors=T,
           colors=colorRampPalette(brewer.pal(9,"Set1"))(nrow(best)))
 
+###################################################  Info a guardar ##################################################
 
 
-
+save(d,tdm.title,tdm.abst,daux,file='App_Shiny_def/data/data.Rdata')
 
 
