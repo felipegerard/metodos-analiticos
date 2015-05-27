@@ -18,10 +18,10 @@ $$
 d_{coseno}(q,d) = \frac{tf_q \cdot tf_d}{\|tf_q\| \|tf_d\|}
 $$
 
-El problema con lo anterior es que las palabras comunes podrían tomar un papel protagónico y en nuestro caso compartir por ejemplo artículos o preposiciones no es muy interesante. Para mitigar esto utilizaremos la frecuencia inversa en documentos $idf_w$, definida para una palabra $w$. Si $N$ es el número total de documentos en la colección y $n_w$ es el número de documentos de la colección que contienen a $w$, entonces definimos la frecuencia inversa de documentos como sigue:
+El problema con lo anterior es que las palabras comunes podrían tomar un papel protagónico y en nuestro caso compartir por ejemplo artículos o preposiciones no es muy interesante. Para mitigar esto utilizaremos la frecuencia inversa en documentos $idf_w$, definida para una palabra $w$. Si $N$ es el número total de documentos en la colección y $df_w$ es el número de documentos de la colección que contienen a $w$, entonces definimos la frecuencia inversa de documentos como sigue:
 
 $$
-idf_w = log(\frac{N}{n_w}) 
+idf_w = log(\frac{N}{df_w}) 
 $$
 
 Y entonces, en lugar de describir a $d$ por medio de $tf_d$, lo describimos por medio de $c_d$, donde
