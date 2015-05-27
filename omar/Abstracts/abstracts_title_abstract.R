@@ -58,23 +58,23 @@ corp.2 <- tm_map(corp.2,function(x){
 
 #corp.2$content[1000:1200]
 
-d$Title[1000]
+d$Title[7220]
 
 
 ############################  Creacion de la matriz terminos documentos y los pesos por ntc ############################
 
 #creamos la matriz terminos documentos
-tdm.1 <- TermDocumentMatrix(corp.2, control=list(wordLengths=c(3, Inf)))
+tdm.1 <- TermDocumentMatrix(corp.2, control=list(wordLengths=c(2, Inf)))
 colnames(tdm.1) <- seq(1,tdm.1$ncol)
 
 #eliminamos los documentos que no tienen terminos (empty docs)
-idx_sum <- as.numeric(as.matrix(rollup(tdm.1, 1, na.rm=TRUE, FUN = sum)))
-tdm_new <- tdm.1[,idx_sum>0]
+#idx_sum <- as.numeric(as.matrix(rollup(tdm.1, 1, na.rm=TRUE, FUN = sum)))
+#tdm_new <- tdm.1[,idx_sum>0]
 
 #actualizamos los pesos
-tdm.2 <- weightSMART(tdm_new, spec = 'ntc')
+#tdm.2 <- weightSMART(tdm_new, spec = 'ntc')
 #save(tdm.2,file='App_Shiny/data/tdm_2.Rdata')
-
+tdm.2 <- weightSMART(tdm.1, spec = 'ntc')
 #####################################  revisamos la normalizacion de los pesos #########################################
 
 head(sort(vec.1 <- as.matrix(tdm.2[,500]),dec=T))
@@ -83,6 +83,9 @@ head(sort(vec.1 <- as.matrix(tdm.2[,500]),dec=T))
 ########################################################  Query #######################################################
 
 query <- 'Polarity Transistion Studies in the Waianae Volcano: From the Gilbert-Gauss to<br> the Upper Kaena Reversals'
+query <- 'Markov Chain Monte Carlo'
+query  <- 'MCMC'
+
 #limpieza del query
 query.l <- Corpus(VectorSource(query))
 q.1 <- tm_map(query.l,function(x){
@@ -125,23 +128,21 @@ res_title$Title <- gsub('<br>','',res_title$Title)
 res_title$Sponsor <- gsub('<br>','',res_title$Sponsor)
 ###################################################  corups abstracts ##################################################
 
+daux <- d %>%
+  mutate(a=gsub('[-]|<br>',' ',Abstract),
+         a=gsub('[()]|[.,;:`"*#&/><]|[\\\']|[]\\[]','',a),
+         a=gsub(' +',' ',a),
+         a=gsub('^ | $','',a)) %>%
+  filter(a != ' ' , a != '', !grepl('(^([^ ] )+[^ ]$)|(^NA$)|(R o o t)', a))
+aux <- daux$a
 
 # creamos el corpus y limpiamos caracteres especiales
-corpus.frases <- Corpus(VectorSource(d$Abstract))
+corpus.frases <- Corpus(VectorSource(aux))
 #corpus.frases
 
-corp.1 <- tm_map(corpus.frases,function(x){
-  c1 <- gsub('R o o t E n t<br> r y','Root Entry',x)
-  c2 <- gsub('C o m p O b j','Comp Obj',c1)
-  c3 <- gsub('S u m m a r y I n f o r m a t i o n','Summary Information',c2)
-  c4 <- gsub('<br> b <br>','',c3)
-  c5 <- gsub('W o r d D o c u m e n t','Word Document',c4)
-  c6 <- gsub('O b j e c t P o o l','Object Pool',c5)
-  c7 <- gsub('[-]|<br>',' ',c6)
-  gsub('[()]|[.,;:`"*#&/><]|[\\\']|[]\\[]','',c7)
-})
-corp.2 <- tm_map(corp.1,removeWords,stopwords("english"))
-corp.2 <- tm_map(corp.2, function(x) stripWhitespace(x) %>% tolower)
+
+corp.2 <- tm_map(corpus.frases,removeWords,stopwords("english"))
+corp.2 <- tm_map(corp.2, function(x) stripWhitespace(tolower(x)))
 corp.2 <- tm_map(corp.2,function(x){
   z <- strsplit(x, " +")[[1]]
   z.stem <- wordStem(z, language="english")
@@ -158,13 +159,13 @@ tdm.1 <- TermDocumentMatrix(corp.2, control=list(wordLengths=c(3, Inf)))
 colnames(tdm.1) <- seq(1,tdm.1$ncol)
 
 #eliminamos los documentos que no tienen terminos (empty docs)
-idx_sum <- as.numeric(as.matrix(rollup(tdm.1, 1, na.rm=TRUE, FUN = sum)))
-tdm_new <- tdm.1[,idx_sum>0]
+# idx_sum <- as.numeric(as.matrix(rollup(tdm.1, 1, na.rm=TRUE, FUN = sum)))
+# tdm_new <- tdm.1[,idx_sum>0]
 
 #actualizamos los pesos
-tdm.2 <- weightSMART(tdm_new, spec = 'ntc')
+#tdm.2 <- weightSMART(tdm_new, spec = 'ntc')
 #save(tdm.2,file='App_Shiny/data/tdm_2.Rdata')
-
+tdm.2 <- weightSMART(tdm.1, spec = 'ntc')
 #####################################  revisamos la normalizacion de los pesos #########################################
 
 head(sort(vec.1 <- as.matrix(tdm.2[,500]),dec=T))
@@ -183,9 +184,8 @@ aa <- t(mat.1)%*%query.vec.norm
 
 ###################################################  top 15 docs ##################################################
 idx_top <- order(aa, decreasing=T)
-d1 <- subset(d,id %in% idx_top)
 
-out_1 <- d1[idx_top,] %>%
+out_1 <- daux[idx_top,] %>%
   select(id,Title, Date, Sponsor, Abstract) %>%
   cbind(score_abst = sort(aa,decreasing = T)) #%>%
   #filter(score_abst > 0)
@@ -197,11 +197,16 @@ View(res_abstract)
 
 ###################################################  left joins ##################################################
 
+alpha <- .5
+
+
+
 output <- d %>% 
   left_join(out[,c('id','score_title')], by = "id") %>%
   left_join(out_1[,c('id','score_abst')], by = "id") %>%
-  mutate(final_score=score_title+score_abst) %>%
-  arrange(desc(final_score))
+  mutate(final_score=alpha*score_title+(1-alpha)*score_abst) %>%
+  filter(final_score!=0) %>%
+  arrange(desc(final_score)) 
 
 res <- output %>% head(15)
 res$Abstract <- gsub('<br>','',res$Abstract)
