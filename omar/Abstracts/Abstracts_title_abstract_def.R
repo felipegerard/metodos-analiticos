@@ -100,8 +100,8 @@ query.vec.title <- as.matrix(query.vec.title)/sqrt(sum(query.vec.title^2)) #norm
 vec_title <- t(mat.title)%*%query.vec.title
 
 ###################################################  top 15 docs (title) ##################################################
-idx_top <- order(vec_title, decreasing=T)
-out_title <- d[idx_top,] %>%
+idx_top_title <- order(vec_title, decreasing=T)
+out_title <- d[idx_top_title,] %>%
   select(id,Title, Date, Sponsor, Abstract) %>%
   cbind(score_title = sort(vec_title,decreasing = T)) 
 
@@ -158,9 +158,9 @@ query.vec.abst <- as.matrix(query.vec.abst)/sqrt(sum(query.vec.abst^2)) #normali
 vec_abst <- t(mat.abst)%*%query.vec.abst
 
 ###################################################  top 15 docs (abstracts) ##################################################
-idx_top <- order(vec_abst, decreasing=T)
+idx_top_abst <- order(vec_abst, decreasing=T)
 
-out_abst <- daux[idx_top,] %>%
+out_abst <- daux[idx_top_abst,] %>%
   select(id,Title, Date, Sponsor, Abstract) %>%
   cbind(score_abst = sort(vec_abst,decreasing = T)) 
 
@@ -194,10 +194,66 @@ ggplot() +
   geom_vline(data=res, aes(xintercept=min(final_score)), color='red')
 
 
+##############################################  WordCloud ##########################################
+nterm <- 4
+alpha <- .5
 
 
 
 
+best <- function(nmatch = 3, nterm = 5, alpha=.5){
+    vq.title <- query.vec.title
+    vq.abst <- query.vec.abst
+    
+    outlist <- list()
+    
+    for(i in 1:nmatch){
+    
+        v.j.title <- mat.title[,idx_top_title[i]]
+        v.j.abst <- mat.abst[,idx_top_abst[i]]
+        
+        v1 <- v.j.title*vq.title
+        v2 <- v.j.abst*vq.abst
+        
+        top_contrib_title <- order(v1,decreasing=T)
+        top_contrib_abst <- order(v2,decreasing=T)
+        
+        df.title <- data.frame(term=dictionary_title[top_contrib_title[1:nterm]], 
+                              score_contrib_title=v1[top_contrib_title[1:nterm]],
+                              score_contrib_abst=rep(0,nterm) , stringsAsFactors=F) 
+        
+        df.abst <- data.frame(term=dictionary_abst[top_contrib_abst[1:nterm]], 
+                              score_contrib_title=rep(0,nterm),
+                              score_contrib_abst=v2[top_contrib_abst[1:nterm]],stringsAsFactors=F) 
+        df <- rbind(df.title,df.abst)
+        
+        df <- cbind(aggregate(score_contrib_title ~ term, data=df, FUN=sum),
+                score_contrib_abst=aggregate(score_contrib_abst ~ term, data=df, FUN=sum)[,2])
+        df$contrib <- alpha*df$score_contrib_title+(1-alpha)*df$score_contrib_abst
+        
+        outlist[[i]] <- df %>%
+          filter(contrib>0) %>%
+          mutate(rank=i)
+    }
+    rbind_all(outlist) %>%
+      select(term,contrib,rank) %>%
+      group_by(term) %>%
+      summarise(contrib_tot=sum(contrib)) %>%
+      arrange(desc(contrib_tot))
+}
+
+
+#best <- best(nmatch = 15, nterm = 5, alpha=.5)
+
+best <- best(nmatch = 15, nterm = length(unique(strsplit(query.limp$content[[1]]$content," ")[[1]])))
+
+########################################################  wordcloud ##################################################
+
+wordcloud(best$term,best$contrib_tot,
+          scale=c(5,.7),
+          min.freq=0.1,
+          ordered.colors=T,
+          colors=colorRampPalette(brewer.pal(9,"Set1"))(nrow(best)))
 
 
 
