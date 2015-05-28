@@ -1,0 +1,525 @@
+---
+title: "Documentación Proyecto final"
+author: "Felipe Gerard, Omar Díaz, Andrés Villaseñor"
+date: "21 de mayo de 2015"
+output: html_document
+---
+
+0. Introducción
+--------------------------
+
+Las colecciones grandes de documentos pueden ser difíciles de aprovechar. Por ejemplo, si queremos que una o varias palabras aparezcan en el documento, podemos hacer un filtro simple. Sin embargo, si las palabras son (razonablemente) comunes, el query nos podría regresar un porcentaje importante de la colección de documentos, sobre todo si son muy largos. Algo más refinado que podríamos hacer sería por ejemplo usar el número de veces que aparecen las palabras deseadas, aunque esto favorecería documentos extensos y las palabras comunes.
+
+En el presente trabajo minaremos una [colección de _abstracts_](https://archive.ics.uci.edu/ml/datasets/NSF+Research+Award+Abstracts+1990-2003) de 129,000 artículos  ganadores de premios de la National Science Foundation (NSF) entre 1990 y 2003. El conjunto de datos está interesante porque provee las versiones cortas de los artículos, de modo que podemos leerlos y darnos una idea rápida de lo que trata cada artículo. En la página estaba la información en crudo (.txt) y ya lista para utilizar el método de bolsa de palabras. Preferimos utilizar la información cruda original para hacer el proceso desde la limpieza de los datos. El objetivo es realizar búsquedas temáticas inteligentes dentro de la colección, es decir, dado un conjunto de palabras clave, queremos obtener los artículos más relevantes. En la siguiente sección describiremos la teoría del método que utilizamos para mitigar los problemas descritos anteriormente.
+
+
+1. Teoría
+--------------------------
+
+Como decíamos arriba, no basta con filtrar los artículos según la aparición de las palabras clave, ni tampoco un conteo simple. Lo que haremos será tomar en cuenta los conteos, pero usaremos técnicas para disminuir la importancia de la longitud de los documentos en cuestión y de la frecuencia de aparición de las palabras comunes.
+
+Denotamos la frecuencia del término $w$ (puede ser una palabra o la raíz de una palabra obtenida con _stemming_) en el documento $d$ como $tf_{w,d}$. De manera natural, denotamos por $tf_d$ al vector de todas las frecuencias de los términos conocidos del documento $d$. Supongamos que queremos comparar los documentos $q$ y $d$. Un primer enfoque que podríamos utilizar sería usar la distancia coseno, que toma en cuenta únicamente la frecuencia relativa de las palabras dentro de los documentos:
+
+$$
+d_{coseno}(q,d) = \frac{tf_q \cdot tf_d}{\|tf_q\| \|tf_d\|}
+$$
+
+El problema con lo anterior es que las palabras comunes podrían tomar un papel protagónico y en nuestro caso compartir por ejemplo artículos o preposiciones no es muy interesante. Para mitigar esto utilizaremos la frecuencia inversa en documentos $idf_w$, definida para una palabra $w$. Si $N$ es el número total de documentos en la colección y $df_w$ es el número de documentos de la colección que contienen a $w$, entonces definimos la frecuencia inversa de documentos como sigue:
+
+$$
+idf_w = log(\frac{N}{df_w}) 
+$$
+
+Y entonces, en lugar de describir a $d$ por medio de $tf_d$, lo describimos por medio de $c_d$, donde
+
+$$
+c_d,w = idf_w \times tf_d,w
+$$
+
+Y así, calculamos la distancia entre dos documentos como la distancia coseno entre sus vectores característicos:
+
+$$
+d(q,d) = \frac{c_q \cdot c_d}{\|c_q\| \|c_d\|}
+$$
+
+La $idf_w$ es el logaritmo del inverso de la probabilidad de que el término $w$ aparezca en un documento elegido al azar. El efecto que esto tiene es que las palabras comunes casi no tendrán ningún efecto en la distancia, puesto que su probabilidad es cercana a 1 y por lo tanto su $idf$ es cercana a cero. Por el contrario, las palabras raras tendrán una probabilidad cercana a 0, por lo que su $idf$ será grande y contribuirán mucho. La razón detrás de hacer esto es que queremos que discriminen las palabras especiales o específicas a un contexto y no las genéricas. El esquema expuesto está escrito con mayor detalle en el libro [Mining of Massive Datasets](http://www.mmds.org), con el detalle de que ahí además normalizan $tf_w$ por la máxima frecuencia obtenida por el término en la colección de documentos.
+
+
+2. Limpieza de la colección de abstracts
+--------------------------
+
+2.1. Descripción del proceso
+----------------------------
+
+La limpieza de los datos consiste en los siguientes pasos:
+
+* __Conversión de archivos de texto a JSON__ estructurado en _bash_ (`abstract2json.sh`):
+
+```{r, eval=FALSE}
+    {
+  "1":{
+	    "Titulo":{"Ejemplo de título"},
+	    "Fecha":{"2013-01-02"},
+	    "Abstract":{"Ejemplo de abstract"},
+	    ...
+	    },
+	"2":{
+	    "Titulo":{"Ejemplo de otro título"},
+	    "Fecha":{"2003-03-02"},
+	    "Abstract":{"Ejemplo de otro abstract"},
+	    ...
+	    },
+	...
+    }
+```
+
+* __Conversión de JSON__ estructurado a data.frame de R para el análisis en _R_ (`json2dataframe_abstracts.R`):
+
+
+* __Texto --> JSON__
+
+
+El primer paso es sustituir los signos de puntuación y los saltos de línea en caracteres manejables. El fin de esto es que no afecten los JSON ni generen resultados raros. Usando los comandos `tr` y `sed` convertimos los saltos de línea en " <br> ", los puntos por "<punto>", etc.
+
+Ya con la puntuación resuelta, pasamos los txt a JSON. Los archivos originales ya venían en un formato razonable similar a JSON, "nombre_de_atributo:descripción", así que lo pudimos convertir sin problema agregando las comillas pertinentes, etc. Hubo que tener cuidado con el encoding de los textos y con el hecho de que el formato no era 100% formal. Para esta parte utilizamos sobre todo `sed` y `awk`.
+
+
+* __JSON --> data.frame__
+
+
+Primero nos aseguramos de que el formato sea legible en _R_. Cuando no, utilizamos _Python_ para limpiar el formato. Una vez habiendo leído la lista a _R_ con la librería `jsonlite`, convertimos la lista recursiva a `data.frame`. Para ahorrar tiempo, utilizamos la función `mclapply` del paquete `parallel`. Finalmente, regresamos la puntuación a su forma original para que el texto recuperado sea legible.
+
+
+2.2 Ejemplo
+----------------------------
+
+* __Texto original:__
+
+
+```{r, eval=FALSE}
+Title       : RFLP Patterns as a Measure of Diversity in Small Populations
+Type        : Award
+NSF Org     : MCB
+Latest
+Amendment
+Date        : May 31,  1990
+File        : a9000031
+
+Award Number: 9000031
+Award Instr.: Standard Grant
+Prgm Manager: Maryanna P. Henkart
+MCB  DIV OF MOLECULAR AND CELLULAR BIOSCIENCE
+BIO  DIRECT FOR BIOLOGICAL SCIENCES
+    Start Date  : June 1,  1990
+Expires     : May 31,  1994        (Estimated)
+    Expected
+    Total Amt.  : $300000             (Estimated)
+Investigator: Marcia M. Miller mamiller@coh.org  (Principal Investigator current)
+    Sponsor     : Beckman Res Inst Cty Hope
+    1500 E. Duarte Road
+    Duarte, CA  910103000    /   -
+
+    NSF Program : 1114      CELL BIOLOGY
+    Fld Applictn: 0000099   Other Applications NEC
+    61        Life Science Biological
+    Program Ref : 9285,
+    Abstract    :
+
+    Studies of chickens have provided serological and nucleic acid
+    probes useful in defining the major histocompatibility complex
+    (MHC) in other avian species.  Methods used in detecting genetic
+    diversity at loci within the MHC of chickens and mammals will be
+    applied to determining the extent of MHC polymorphism within
+    small populations of ring-necked pheasants, wild turkeys, cranes,
+    Andean condors and other species.  The knowledge and expertise
+    gained from working with the MHC of the chicken should make for
+    rapid progress in defining the polymorphism of the MHC in these
+    species and in detecting the polymorphism of MHC gene pool within
+    small wild and captive populations of these birds.
+
+    Genes within the major histocompatibility complex (MHC) are known
+    to encode molecules that provide the context for recognition of
+    foreign antigens by the immune system.  Whether a given animal is
+    able to mount an immune response to the challenge of a pathogen
+    is determined, in part, by the allelic makeup of its MHC.  In
+    many species, an unusually high degree of polymorphism is
+    maintained at multiple loci within the MHC in freely breeding
+    populations.  The allelic pool within a population presumably
+    provides diversity upon which to draw in the face of
+    environmental challenge.  The objective of the proposed research
+    is to extend ongoing studies of the MHC of domesticated fowl to
+    include avian species experiencing severe reduction in population
+    size.  Knowledge of the MHC gene pool within populations and of
+    the haplotypes of individual animals may be useful in the
+    husbandry of species requiring intervention for their
+    preservation.
+```
+
+* __JSON__
+
+```{r, eval=FALSE}
+"51758":{
+    "Title":"RFLP Patterns as a Measure of Diversity in Small Populations",
+    "Date":"May 31<coma> 1990",
+    "Award Number":"9000031",
+    "Investigator":"Marcia M<punto> Miller mamillercoh<punto>org <abre_parent>Principal 
+    Investigator current<cierra_parent>",
+    "Sponsor":"Beckman Res Inst Cty Hope<br> 1500 E<punto> Duarte Road<br> Duarte<coma> 
+    CA 910103000 <diagonal> <guion><br>",
+    "Fld Applictn":"0000099 Other Applications NEC <br> 61 Life Science Biological",
+    "Abstract":"<br> <br> Studies of chickens have provided serological and nucleic 
+    acid <br> probes useful in defining the major histocompatibility complex <br> 
+    <abre_parent> MHC<cierra_parent> in other avian species<punto> Methods used in 
+    detecting genetic <br> diversity at loci within the MHC of chickens and mammals will
+    be <br> applied to determining the extent of MHC polymorphism within <br> small 
+    populations of ring<guion>necked pheasants <coma> wild turkeys<coma> cranes<coma> <br> 
+    Andean condors and other species<punto> The knowledge and expertise <br> gained from 
+    working with the MHC of the chicken should make for <br> rapid progress in defining 
+    the polymorphism of the MHC in these <br> species and in detecting the polymorphism 
+    of MHC gene pool within <br> small wild and captive populations of
+    these birds<punto> <br> <br> Genes within the major histocompatibility complex 
+    <abre_parent> MHC<cierra_parent> are known <br> to encode molecules that provide 
+    the context for recognition of <br> foreign antigens by the immune system<punto> 
+    Whether a given animal is <br> able to mount an immune response to the challenge 
+    of a pathogen <br> is determined<coma> in part<coma> by the allelic makeup of its 
+    MHC<punto> In <br> many species<coma> an unusually high degree of polymorphism 
+    is <br> maintained at multiple loci within the MHC in freely breeding <br> 
+    populations<punto> The allelic pool within a population presumably <br>  
+    provides diversity upon  which to draw in the face of <br> 
+    environmental challenge<punto> The objective of the proposed research <br> 
+    is to extend ongoing studies of the MHC of domesticated fowl to <br> 
+    include avian species experiencing severe reduction in population <br> 
+    size<punto> Knowledge ofthe MHC gene pool within populations and of <br> 
+    the haplotypes of individual animals may be useful in the <br> 
+    husbandry of species requiring intervention for their <br> 
+    preservation<punto><br>"
+}
+```
+
+### 3. Data Frame
+
+Tiene las columnas del JSON anterior pero en versión y la puntuación en formato normal. No incluimos el ejemplo porque el formato no es práctico.
+
+
+
+### 4. Implementación del modelo
+
+Una vez con los datos limpios como se mencionó anteriormente, procedemos a implementar el modelo. Este va a buscar la información reelevante a un tema o palabras, y va a mezclar dos criterios de selección (__título__ y __abstract__) de tal manera que el usuario en la aplicación de shiny va a poder escoger a que concepto le quiere dar más peso mediante una variable dinámica _"alpha"_.
+
+
+
+```{r, echo=FALSE}
+
+#cargamos los datos
+load('/Users/lechuga/data-science/metodos-analiticos/omar/Abstracts/abstracts_clean.Rdata')
+load('/Users/lechuga/data-science/metodos-analiticos/andres/corpus.Rdata')
+```
+
+Escogemos el query y lo limpiamos para que sea totalmente homogeneo al corpus de los datos que más adelante veremos.
+
+
+```{r,warning=FALSE,message=FALSE}
+#Las librerías utilizadas son las siguientes:
+library(Matrix)
+library(dplyr)
+library(tm)
+library(slam)
+library(Rstem)
+library(ggplot2)
+library(wordcloud)
+library(knitr)
+
+#carga de datos
+#load('abstracts_clean.Rdata')
+abstracts2 <- as.data.frame(abstracts2)
+
+
+########################################################  Query #######################################################
+
+query <- 'Polarity Transistion Studies in the Waianae Volcano: From the Gilbert-Gauss to the Upper Kaena Reversals'
+#query <- 'Markov Chain Monte Carlo'
+
+
+#limpieza del query
+query.limp <- Corpus(VectorSource(query))
+query.limp <- tm_map(query.limp,function(x){
+  q1 <- gsub('[-]|<br>',' ',x)
+  gsub('[()]|[.,;:`"*#&/><]|[\\\']|[]\\[]','',q1)
+})
+query.limp <- tm_map(query.limp,removeWords,stopwords("english"))
+query.limp <- tm_map(query.limp, function(x) stripWhitespace(x) %>% tolower)
+query.limp <- tm_map(query.limp,function(x){
+  z <- strsplit(x, " +")[[1]]
+  z.stem <- wordStem(z, language="english")
+  PlainTextDocument(paste(z.stem, collapse=" "))
+})
+
+
+```
+
+Tras la limpieza de los datos mencionada anteriormente, tenemos que aún en necesario tranformarlos y quitar los datos faltantes o datos que tengan alguna imperfección.
+
+
+```{r, warning=FALSE, message=FALSE}
+###################################  limpieza de la informacion y creacion del corpus (datos) ##################################
+
+# filtramos cosas feas en abstract y title
+d <- abstracts2 %>%
+  filter(grepl('Presidential Awardee',Title)=='FALSE') %>% #815
+  filter(grepl('Not Available',Abstract)=='FALSE') %>% #1267
+  filter(Title != '') %>% #8
+  filter(Abstract != '' ) %>% #2180
+  filter(grepl('-----------------------------------------------------------------------',Abstract)=='FALSE') %>%
+  mutate(id=row_number()) %>%
+  dplyr::select(id,Title,Abstract,Fld.Applictn,Date,Sponsor,Investigator,Award.Number)
+
+d_fin <- d
+
+```
+
+Hacemos el corpus para los títulos.
+
+
+```{r}
+################################################  Análisis por Título (title) #####################################
+
+
+# creamos el corpus y limpiamos caracteres especiales del titulo
+corpus.title <- Corpus(VectorSource(d$Title))
+
+
+corp.1 <- tm_map(corpus.title,function(x){
+  c1 <- gsub('[-]|<br>',' ',x)
+  gsub('[()]|[.,;:`"*#&/><]|[\\\']|[]\\[]','',c1)
+})
+corp.1 <- tm_map(corp.1,removeWords,stopwords("english"))
+corp.1 <- tm_map(corp.1, function(x) stripWhitespace(x) %>% tolower)
+corp.1 <- tm_map(corp.1,function(x){
+  z <- strsplit(x, " +")[[1]]
+  z.stem <- wordStem(z, language="english")
+  PlainTextDocument(paste(z.stem, collapse=" "))
+})
+
+```
+
+Posteriormente creamos la matriz de términos-documentos y tomamos los pesos utilizano como criterio __"ntc"__ ya que es el que mejor resultado genera. 
+
+```{r}
+###################  Creacion de la matriz terminos documentos y los pesos por ntc (title)  ############################
+
+#creamos la matriz terminos documentos
+tdm.title <- TermDocumentMatrix(corp.1, control=list(wordLengths=c(2, Inf)))
+colnames(tdm.title) <- seq(1,tdm.title$ncol)
+
+tdm.title <- weightSMART(tdm.title, spec = 'ntc')
+
+#revisamos la normalizacion de los pesos (title)
+head(sort(as.matrix(tdm.title[,500]),dec=T))
+
+```
+
+
+
+Ahora tenemos que multiplicar la base (la matriz rala de todos los términos documentos) por la matriz obtenida anteriormente. Esto ya que nos permite quedarnos con los términos que aportan más al score TF-IDF y nos permiten medir la distancia en este caso en particular utilizando la __"distancia coseno"__, ya que el producto punto dividido entre la logitud de estas matrices es precisamente el tamaño de la intersección entre estos dos _conjuntos_. Por lo tanto este calculo nos permite conocer el coseno del angulo entre estos dos _"vectores"_
+
+
+
+```{r}
+
+################################################ Multiplicacion query * tdm (title) ############################################
+
+mat.title <- sparseMatrix(i=tdm.title$i, j=tdm.title$j, x = tdm.title$v)
+dictionary_title <- tdm.title$dimnames$Terms
+query.vec.title <- TermDocumentMatrix(query.limp, 
+                                      control = list(dictionary = dictionary_title,
+                                                     wordLengths=c(1, Inf))) 
+
+query.vec.title <- as.matrix(query.vec.title)/sqrt(sum(query.vec.title^2)) #normalizar con ntc el query
+
+
+vec_title <- t(mat.title)%*%query.vec.title
+```
+
+Ahora vislualizamos los 15 resultados que más aportarón información al modelo
+
+```{r}
+###################################################  top 15 docs (title) ##################################################
+idx_top_title <- order(vec_title, decreasing=T)
+out_title <- d[idx_top_title,] %>%
+  dplyr::select(id,Title, Date, Sponsor, Abstract) %>%
+  cbind(score_title = sort(vec_title,decreasing = T)) 
+
+res_title <- out_title %>% head(15)
+res_title$Abstract <- gsub('<br>','',res_title$Abstract)
+res_title$Title <- gsub('<br>','',res_title$Title)
+res_title$Sponsor <- gsub('<br>','',res_title$Sponsor)
+
+res_title$Title
+```
+
+De forma análogoa hacemos el procedimiento para los abstracts.
+
+```{r, message=FALSE, warning=FALSE}
+#############################################  corups abstracts (abstracts) ##################################################
+
+daux <- d %>%
+  mutate(a=gsub('[-]|<br>',' ',Abstract),
+         a=gsub('[()]|[.,;:`"*#&/><]|[\\\']|[]\\[]','',a),
+         a=gsub(' +',' ',a),
+         a=gsub('^ | $','',a)) %>%
+  filter(a != ' ' , a != '', !grepl('(^([^ ] )+[^ ]$)|(^NA$)|(R o o t)', a))
+aux <- daux$a
+
+# creamos el corpus y limpiamos caracteres especiales
+corpus.abstract <- Corpus(VectorSource(aux))
+
+
+corp.2 <- tm_map(corpus.abstract,removeWords,stopwords("english"))
+corp.2 <- tm_map(corp.2, function(x) stripWhitespace(tolower(x)))
+corp.2 <- tm_map(corp.2,function(x){
+  z <- strsplit(x, " +")[[1]]
+  z.stem <- wordStem(z, language="english")
+  PlainTextDocument(paste(z.stem, collapse=" "))
+})
+
+#################  Creacion de la matriz terminos documentos y los pesos por ntc (abstracts) ############################
+
+#creamos la matriz terminos documentos
+tdm.abst <- TermDocumentMatrix(corp.2, control=list(wordLengths=c(3, Inf)))
+colnames(tdm.abst) <- seq(1,tdm.abst$ncol)
+
+tdm.abst <- weightSMART(tdm.abst, spec = 'ntc')
+
+##################################  revisamos la normalizacion de los pesos (abstracts) #########################################
+
+head(sort(as.matrix(tdm.abst[,500]),dec=T))
+
+################################################ Multiplicacion query * tdm (abstracts) ############################################
+
+mat.abst <- sparseMatrix(i=tdm.abst$i, j=tdm.abst$j, x = tdm.abst$v)
+dictionary_abst <- tdm.abst$dimnames$Terms
+query.vec.abst <- TermDocumentMatrix(query.limp, 
+                                     control = list(dictionary = dictionary_abst,
+                                                    wordLengths=c(1, Inf))) 
+
+query.vec.abst <- as.matrix(query.vec.abst)/sqrt(sum(query.vec.abst^2)) #normalizar con ntc el query
+
+vec_abst <- t(mat.abst)%*%query.vec.abst
+
+###################################################  top 15 docs (abstracts) ##################################################
+idx_top_abst <- order(vec_abst, decreasing=T)
+
+out_abst <- daux[idx_top_abst,] %>%
+  dplyr::select(id,Title, Date, Sponsor, Abstract) %>%
+  cbind(score_abst = sort(vec_abst,decreasing = T)) 
+
+res_abstract <- out_abst %>% head(15)
+res_abstract$Abstract <- gsub('<br>','',res_abstract$Abstract)
+res_abstract$Title <- gsub('<br>','',res_abstract$Title)
+res_abstract$Sponsor <- gsub('<br>','',res_abstract$Sponsor)
+
+#res_abstract$Abstract
+```
+
+Ahora hacmos un join los de resultados de _títulos_ y _abstracts_, seleccionamos el valor de __alpha__ que determina el peso, esto ya que la fórmula es de la siguiente forma:
+\[ \alpha * score_{titles} + (1- \alpha) * score_{abstracts} \]
+
+
+
+```{r, message=FALSE,warning=FALSE}
+###################################################  left joins ##################################################
+
+alpha <- .5
+
+output <- d %>% 
+  left_join(out_title[,c('id','score_title')], by = "id") %>%
+  left_join(out_abst[,c('id','score_abst')], by = "id") %>%
+  mutate(final_score=alpha*score_title+(1-alpha)*score_abst) %>%
+  filter(final_score!=0) %>%
+  arrange(desc(final_score)) 
+
+res <- output %>% head(15)
+res$Abstract <- gsub('<br>','',res$Abstract)
+res$Title <- gsub('<br>','',res$Title)
+res$Sponsor <- gsub('<br>','',res$Sponsor)
+View(res)
+```
+
+
+
+Observamos el histograma de discriminación, el cual nos da una idea gráfica e intuitiva de como es que estamos haciendo nuestro criterio de selección, el cual se encuentra a continuación.
+
+
+```{r}
+m <- data.frame(min=min(res$final_score))
+ggplot() +
+  geom_bar(data=output, mapping=aes(x=final_score)) +
+  geom_vline(data=res, aes(xintercept=min(final_score)), color='red')
+```
+
+
+A la derecha de la línea roja, se marca la cantidad de documentos estamos considerando para hacer la recuperación de información. Si la cantidad de documentos a la derecha de la linea roja es muy grande quiere deicr que no estamos logrando una buena discriminación, de lo contrario tenemos que hay pocos documentos que nos aportan una ganancia de información, es decir, tenemos que la información es más valiosa y por lo tanto el resultado.
+
+A continuación, vemos como obtenemos de forma particular las palabras que más contribuyen a nuestro modelo.
+
+```{r}
+best <- function(nmatch = 3, nterm = 5, alpha=.5){
+  vq.title <- query.vec.title
+  vq.abst <- query.vec.abst
+  
+  outlist <- list()
+  
+  for(i in 1:nmatch){
+    
+    v.j.title <- mat.title[,idx_top_title[i]]
+    v.j.abst <- mat.abst[,idx_top_abst[i]]
+    
+    v1 <- v.j.title*vq.title
+    v2 <- v.j.abst*vq.abst
+    
+    top_contrib_title <- order(v1,decreasing=T)
+    top_contrib_abst <- order(v2,decreasing=T)
+    
+    df.title <- data.frame(term=dictionary_title[top_contrib_title[1:nterm]], 
+                           score_contrib_title=v1[top_contrib_title[1:nterm]],
+                           score_contrib_abst=rep(0,nterm) , stringsAsFactors=F) 
+    
+    df.abst <- data.frame(term=dictionary_abst[top_contrib_abst[1:nterm]], 
+                          score_contrib_title=rep(0,nterm),
+                          score_contrib_abst=v2[top_contrib_abst[1:nterm]],stringsAsFactors=F) 
+    df <- rbind(df.title,df.abst)
+    
+    df <- cbind(aggregate(score_contrib_title ~ term, data=df, FUN=sum),
+                score_contrib_abst=aggregate(score_contrib_abst ~ term, data=df, FUN=sum)[,2])
+    df$contrib <- alpha*df$score_contrib_title+(1-alpha)*df$score_contrib_abst
+    
+    outlist[[i]] <- df %>%
+      filter(contrib>0) %>%
+      mutate(rank=i)
+  }
+  rbind_all(outlist) %>%
+    dplyr::select(term,contrib,rank) %>%
+    group_by(term) %>%
+    summarise(contrib_tot=sum(contrib)) %>%
+    arrange(desc(contrib_tot))
+}
+
+
+#best <- best(nmatch = 15, nterm = 5, alpha=.5)
+
+best <- best(nmatch = 15, nterm = length(unique(strsplit(query.limp$content[[1]]$content," ")[[1]])))
+
+kable(head(best,15))
+```
+
+Finalmente el wordcloud para una visualización mas amigable.
+
+```{r, fig.width=7, fig.height=7, warning=FALSE}
+wordcloud(best$term,best$contrib_tot,
+          scale=c(5,.7),
+          min.freq=0.1,
+          ordered.colors=T,
+          colors=colorRampPalette(brewer.pal(9,"Set1"))(nrow(best)))
+```
+
+
