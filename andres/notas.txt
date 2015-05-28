@@ -1,0 +1,20 @@
+NOTAS 
+
+1. Cargamos los datos ya en el formato expuesto en la sección 1
+2. Nos quedamos con los datos completos, es decir aquellos que cuenten con el título y el abstact completo 
+3. Creamos el corpus, es decir tranformamos los datos a un objeto del tipo "corpus"
+4. Hacemos la limpieza dentro del corpus que comprende:
+	> Quitar los stopwords
+	> Remover los espacios en blanco
+	> Transformar a minúsculas
+	> Hacer STEAM de las palabras
+La justificación del punto 4 es homogenizar los datos para poder hacer una mejor búsqueda.
+
+
+
+
+Siguiendo con la teoría 
+
+
+
+VER pagina 293
