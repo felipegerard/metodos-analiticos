@@ -53,6 +53,7 @@ d <- abstracts2 %>%
   mutate(id=row_number()) %>%
   select(id,Title,Abstract,Fld.Applictn,Date,Sponsor,Investigator,Award.Number)
 
+d_fin <- d
 
 ################################################  Análisis por Título (title) #####################################
 
@@ -195,10 +196,6 @@ ggplot() +
 
 
 ##############################################  WordCloud ##########################################
-nterm <- 4
-alpha <- .5
-
-
 
 
 best <- function(nmatch = 3, nterm = 5, alpha=.5){
@@ -258,6 +255,6 @@ wordcloud(best$term,best$contrib_tot,
 ###################################################  Info a guardar ##################################################
 
 
-save(d,tdm.title,tdm.abst,daux,file='App_Shiny_def/data/data.Rdata')
+save(d_fin,tdm.title,tdm.abst,daux,file='App_Shiny_def/data/data.Rdata')
 
 
