@@ -33,7 +33,7 @@ $$
 Y entonces, en lugar de describir a $d$ por medio de $tf_d$, lo describimos por medio de $c_d$, donde
 
 $$
-c_d,w = idf_w \times tf_d,w
+c_{d,w} = idf_w \times tf_{d,w}
 $$
 
 Y así, calculamos la distancia entre dos documentos como la distancia coseno entre sus vectores característicos:
@@ -458,7 +458,7 @@ ggplot() +
 ```
 
 
-A la derecha de la línea roja, se marca la cantidad de documentos estamos considerando para hacer la recuperación de información. Si la cantidad de documentos a la derecha de la linea roja es muy grande quiere deicr que no estamos logrando una buena discriminación, de lo contrario tenemos que hay pocos documentos que nos aportan una ganancia de información, es decir, tenemos que la información es más valiosa y por lo tanto el resultado.
+A la derecha de la línea roja, están los 15 documentos con los scores más altos. Si la cantidad de documentos cercanos la linea roja por el lado izquierdo es muy grande quiere deicr que no estamos logrando una buena discriminación. Por el contrario, si la distribución tiene una cola muy delgada del lado derecho, realmente estamos obteniendo documentos relevantes.
 
 A continuación, vemos como obtenemos de forma particular las palabras que más contribuyen a nuestro modelo.
 
