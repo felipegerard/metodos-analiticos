@@ -9,7 +9,7 @@ shinyUI(fluidPage(
   sidebarLayout(
     sidebarPanel(
       textInput("word", label = h3("Title, Abstract or Caption:"),'Markov Chain Monte Carlo'),
-      p("The aplha value determines the weight of scores"),
+      p("The alpha value determines the weight of scores"),
       p('(alpha)*Titles+(1-alpha)*Abstracts'),
       sliderInput("alpha", 
                    label = h4("alpha value"),
