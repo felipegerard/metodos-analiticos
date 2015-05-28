@@ -48,8 +48,8 @@ abstracts <- rbind(
   data.frame
 names(abstracts) <- c('file','title','date','award_number','investigator','sponsor','field','abstract')
 
-#write.table(abstracts, file = '../data/big/abstracts_clean.psv', sep = '|')
-#save(abstracts, file='../data/abstracts_clean.Rdata')
+#write.table(abstracts, file = '../data/big/abstracts_clean_def.psv', sep = '|')
+#save(abstracts, file='../data/abstracts_clean_def.Rdata')
 
 
 
